@@ -1,0 +1,6 @@
+{
+    "sketch": "model-railway-ct-reader.ino",
+    "board": "arduino:avr:uno",
+    "programmer": "avrisp",
+    "port": "/dev/tty.usbmodem11201"
+}
