@@ -1,26 +1,31 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define INPUT_CHANNEL A0
-#define CT_RATIO 1000    // current transformer ratio 1000/1 = 1000
-#define SHUNT_RES 20     // shunt resistor connected to CT secondary = 20 Ohm
-#define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
 #define OLED_RESET -1
 #define RED 0xF800
 #define GREEN 0x07E0
+#define CT_RATIO 1000    // current transformer ratio 1000/1 = 1000
+#define SHUNT_RES 20     // shunt resistor connected to CT secondary = 20 Ohm
+#define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+struct reader {
+  uint8_t pin;
+  float rms;
+};
+
 // variables
-const uint16_t printDelay = 250;
+const uint16_t printDelay = 500;
 uint64_t lastPrint;
-uint16_t i, j;
+uint16_t i;
+uint8_t j, lastPrintedReader = 0;
 const uint16_t samples = 256;
 uint16_t r_array[samples];
-float dc_offset = 0;
-float rms = 0;
+#define READER_COUNT 1
+reader readers[READER_COUNT] = {{A0}};
 
 void setup() {
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -36,12 +41,44 @@ void setup() {
   display.display();
   delay(3000);
 
-  pinMode(INPUT_CHANNEL, INPUT);
+  for (i = 0; i < READER_COUNT; i++) {
+    pinMode(readers[i].pin, INPUT);
+  }
 }
 
 void loop() {
-  dc_offset = 0;
-  rms = 0;
+  for (i = 0; i < READER_COUNT; i++) {
+    readers[i].rms = read_rms(readers[i].pin);
+  }
+
+  if (millis() - lastPrint > printDelay) {
+    lastPrint = millis();
+
+    if (lastPrintedReader >= READER_COUNT) {
+      lastPrintedReader = 0;
+    }
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 15);
+    display.print(readers[lastPrintedReader].pin);
+    display.print(" ");
+    display.print(readers[lastPrintedReader].rms, 2);
+    display.print("mA ");
+    if (readers[lastPrintedReader].rms > 0)
+      display.print("OCC");
+    else
+      display.print("UNOCC");
+    display.display();
+
+    lastPrintedReader++;
+  }
+}
+
+float read_rms(uint8_t pin) {
+  float dc_offset = 0;
+  float rms = 0;
 
   for (i = 0; i < samples; i++) {
     r_array[i] = 0;
@@ -51,7 +88,7 @@ void loop() {
   for (i = 0; i < samples; i++) {
     // adding another 2 bits using oversampling technique
     for (j = 0; j < 16; j++) {
-      r_array[i] += analogRead(INPUT_CHANNEL);
+      r_array[i] += analogRead(pin);
     }
     r_array[i] /= 4;
   }
@@ -79,23 +116,5 @@ void loop() {
   // (in milli Amps)
   rms = rms / SHUNT_RES;
   // now we can get current passing through the CT in milli Amps
-  rms = rms * CT_RATIO;
-
-  if (millis() - lastPrint > printDelay) {
-    lastPrint = millis();
-
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(5, 12);
-    display.print("RMS ");
-    display.print(rms, 3);
-    display.println("mA");
-    display.setCursor(5, 20);
-    if (rms > 0)
-      display.println("OCCUPIED");
-    else
-      display.println("UNOCCUPIED");
-    display.display();
-  }
+  return rms * CT_RATIO;
 }
