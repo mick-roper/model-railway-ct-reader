@@ -7,7 +7,7 @@
 #define RED 0xF800
 #define GREEN 0x07E0
 #define CT_RATIO 1000    // current transformer ratio 1000/1 = 1000
-#define SHUNT_RES 20     // shunt resistor connected to CT secondary = 20 Ohm
+#define SHUNT_RES 40     // shunt resistor connected to CT secondary = 40 Ohm
 #define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
