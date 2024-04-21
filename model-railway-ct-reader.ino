@@ -9,13 +9,10 @@
 #define CT_RATIO 1000    // current transformer ratio 1000/1 = 1000
 #define SHUNT_RES 40     // shunt resistor connected to CT secondary = 40 Ohm
 #define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
+#define PIN_ZERO A0
+#define PIN_OFFSET 0
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-struct reader {
-  uint8_t pin;
-  float rms;
-};
 
 // variables
 const uint16_t printDelay = 500;
@@ -25,7 +22,7 @@ uint8_t j, lastPrintedReader = 0;
 const uint16_t samples = 256;
 uint16_t r_array[samples];
 #define READER_COUNT 1
-reader readers[READER_COUNT] = {{A0}};
+float readerVals[READER_COUNT];
 
 void setup() {
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -42,13 +39,13 @@ void setup() {
   delay(3000);
 
   for (i = 0; i < READER_COUNT; i++) {
-    pinMode(readers[i].pin, INPUT);
+    pinMode(PIN_ZERO + PIN_OFFSET + i, INPUT);
   }
 }
 
 void loop() {
   for (i = 0; i < READER_COUNT; i++) {
-    readers[i].rms = read_rms(readers[i].pin);
+    readerVals[i] = read_rms(PIN_ZERO + PIN_OFFSET + i);
   }
 
   if (millis() - lastPrint > printDelay) {
@@ -62,11 +59,11 @@ void loop() {
     display.setTextSize(1);
     display.setTextColor(WHITE);
     display.setCursor(0, 15);
-    display.print(readers[lastPrintedReader].pin);
+    display.print(PIN_ZERO + PIN_OFFSET + i);
     display.print(" ");
-    display.print(readers[lastPrintedReader].rms, 2);
+    display.print(readerVals[i], 2);
     display.print("mA ");
-    if (readers[lastPrintedReader].rms > 0)
+    if (readerVals[i] > 0)
       display.print("OCC");
     else
       display.print("UNOCC");
