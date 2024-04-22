@@ -10,8 +10,8 @@
 #define SHUNT_RES 40     // shunt resistor connected to CT secondary = 40 Ohm
 #define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
 
-static const uint8_t PIN_COUNT = 13;
-static const uint8_t PIN_ZERO = A0;
+static const uint8_t PIN_COUNT = 19;
+static const uint8_t PIN_ZERO = 0;
 static const uint8_t PIN_OFFSET = 0;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
