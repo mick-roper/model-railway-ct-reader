@@ -9,8 +9,10 @@
 #define CT_RATIO 1000    // current transformer ratio 1000/1 = 1000
 #define SHUNT_RES 40     // shunt resistor connected to CT secondary = 40 Ohm
 #define REF_VOLTAGE 1024 // reference voltage for ADC, in millivolts
-#define PIN_ZERO A0
-#define PIN_OFFSET 0
+
+static const uint8_t PIN_COUNT = 13;
+static const uint8_t PIN_ZERO = A0;
+static const uint8_t PIN_OFFSET = 0;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -18,11 +20,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const uint16_t printDelay = 500;
 uint64_t lastPrint;
 uint16_t i;
-uint8_t j, lastPrintedReader = 0;
+uint8_t j, lastPrintedReader = PIN_ZERO + PIN_OFFSET;
 const uint16_t samples = 256;
 uint16_t r_array[samples];
-#define READER_COUNT 1
-float readerVals[READER_COUNT];
+float readerVals[PIN_COUNT];
 
 void setup() {
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -38,20 +39,20 @@ void setup() {
   display.display();
   delay(3000);
 
-  for (i = 0; i < READER_COUNT; i++) {
+  for (i = 0; i < PIN_COUNT; i++) {
     pinMode(PIN_ZERO + PIN_OFFSET + i, INPUT);
   }
 }
 
 void loop() {
-  for (i = 0; i < READER_COUNT; i++) {
+  for (i = 0; i < PIN_COUNT; i++) {
     readerVals[i] = read_rms(PIN_ZERO + PIN_OFFSET + i);
   }
 
   if (millis() - lastPrint > printDelay) {
     lastPrint = millis();
 
-    if (lastPrintedReader >= READER_COUNT) {
+    if (lastPrintedReader++ >= PIN_COUNT) {
       lastPrintedReader = 0;
     }
 
@@ -68,8 +69,6 @@ void loop() {
     else
       display.print("UNOCC");
     display.display();
-
-    lastPrintedReader++;
   }
 }
 
@@ -85,7 +84,7 @@ float read_rms(uint8_t pin) {
   for (i = 0; i < samples; i++) {
     // adding another 2 bits using oversampling technique
     for (j = 0; j < 16; j++) {
-      r_array[i] += analogRead(pin);
+      r_array[i] += digitalRead(pin);
     }
     r_array[i] /= 4;
   }
